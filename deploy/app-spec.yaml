@@ -1,0 +1,62 @@
+
+databases:
+- engine: PG
+  name: dfaheyblog-db
+  num_nodes: 1
+  size: db-s-dev-database
+  version: "14"
+- cluster_name: dfaheyblog-redis
+  engine: REDIS
+  name: dfaheyblog-redis
+  production: true
+  version: "7"
+name: dfaheyblog
+region: nyc
+services:
+- dockerfile_path: Dockerfile.web
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${dfaheyblog-db.DATABASE_URL}
+  - key: DJANGO_SETTINGS_MODULE
+    scope: RUN_AND_BUILD_TIME
+    value: dfaheyblog.settings_production
+  - key: SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: 'django-insecure-KetYtwZhH1Xp2EdMDzCHwo1AnjJ31fyp4ms2LKsh1waMVeoHCwAqvQGAdX2N'
+  - key: REDIS_URL
+    scope: RUN_TIME
+    value: ${dfaheyblog-redis.DATABASE_URL}
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: domfahey/dfaheyblog
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: dfaheyblog-web
+  routes:
+  - path: /
+workers:
+- dockerfile_path: Dockerfile.web
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${dfaheyblog-db.DATABASE_URL}
+  - key: DJANGO_SETTINGS_MODULE
+    scope: RUN_AND_BUILD_TIME
+    value: dfaheyblog.settings_production
+  - key: SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: 'django-insecure-KetYtwZhH1Xp2EdMDzCHwo1AnjJ31fyp4ms2LKsh1waMVeoHCwAqvQGAdX2N'
+  - key: REDIS_URL
+    scope: RUN_TIME
+    value: ${dfaheyblog-redis.DATABASE_URL}
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: domfahey/dfaheyblog
+  instance_count: 1
+  instance_size_slug: basic-xs
+  name: dfaheyblog-celery
+  run_command: celery -A dfaheyblog worker -l INFO --pool=gevent --concurrency 2
